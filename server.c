@@ -75,10 +75,13 @@ int main(int argc, char **argv) {
 				
 				close(listenerfd);
 				// preluam request-ul si il afisam pe ecran
-				char request[10000];
+				
+				
+				char request[10000], *requestHeader[10];
 				int requestLength; // lungimea request-ului in bytes pentru folosirea functiei recv()
 				memset((void*)request, (int)'\0', 10000);
 				requestLength = recv(clientfd, request, 10000, 0);
+				
 				
 				if (requestLength < 0) {
 					perror("[SERVER] recv() error\n");
@@ -86,18 +89,34 @@ int main(int argc, char **argv) {
 				}
 				else {
 					//printf("%s", request);
-					fwrite(request, 1, sizeof(request), stdout);
+					//fwrite(request, 1, sizeof(request), stdout);
 					printf("%d\n", pid);
 					
 					char *response = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
 					write(clientfd, response, strlen(response));
 					
+					
+					//ne intereseaza ce fisier cere clientul in header-ul requestului, il trunchiem
+					
+					//prima linie
+					requestHeader[0] = strtok(request, "\n");
+					printf("requestHeader[0] = %s\n\n", requestHeader[0]);
+					
+					//operatia (GET, POST, etc)
+					requestHeader[1] = strtok(requestHeader[0], " \t");
+					printf("requestHeader[1] = %s\n\n", requestHeader[1]);
+					
+					//fisierul cerut
+					requestHeader[2] = strtok(NULL, " \t\n");
+					printf("requestHeader[2] = %s\n\n", requestHeader[2]);
+					
+					//versiunea HTTP
+					requestHeader[3] = strtok(NULL, " \t\n");
+					printf("requestHeader[3] = %s\n\n", requestHeader[3]);
+					
+					
 					exit(0);
 				}
-			}
-			
-			else {
-				printf("%d\n", pid);
 			}
 		}
 	}
