@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <string.h>
 
-int PORT = 10000;
+int PORT = 10006;
 extern int errno;
 
 int listenerfd, clients[1000];
@@ -59,9 +59,9 @@ int main(int argc, char **argv) {
 	
 	while(1) {
 		
-		int pid;
+		int pid, clientfd;
 		length = sizeof(client);
-		clients[clientNo] = accept(listenerfd, (struct sockaddr*)&client, &length);
+		clientfd = accept(listenerfd, (struct sockaddr*)&client, &length);
 		
 		if (clients[clientNo] == -1) {
 			perror("[SERVER] accept error");
@@ -69,22 +69,35 @@ int main(int argc, char **argv) {
 		}
 		else {
 			
+			pid = fork();
 			// facem handle la client in procesul copil
-			if (pid = fork() == 0) {
+			if (pid == 0) {
 				
+				close(listenerfd);
 				// preluam request-ul si il afisam pe ecran
 				char request[10000];
 				int requestLength; // lungimea request-ului in bytes pentru folosirea functiei recv()
 				memset((void*)request, (int)'\0', 10000);
-				requestLength = recv(clients[clientNo], request, 10000, 0);
+				requestLength = recv(clientfd, request, 10000, 0);
 				
 				if (requestLength < 0) {
 					perror("[SERVER] recv() error\n");
 					return errno;
 				}
 				else {
-					printf("%s", request);
+					//printf("%s", request);
+					fwrite(request, 1, sizeof(request), stdout);
+					printf("%d\n", pid);
+					
+					char *response = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
+					write(clientfd, response, strlen(response));
+					
+					exit(0);
 				}
+			}
+			
+			else {
+				printf("%d\n", pid);
 			}
 		}
 	}
