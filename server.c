@@ -77,7 +77,14 @@ int main(int argc, char **argv) {
 				int requestLength; // lungimea request-ului in bytes pentru folosirea functiei recv()
 				memset((void*)request, (int)'\0', 10000);
 				requestLength = recv(clients[clientNo], request, 10000, 0);
-				printf("%s", request);
+				
+				if (requestLength < 0) {
+					perror("[SERVER] recv() error\n");
+					return errno;
+				}
+				else {
+					printf("%s", request);
+				}
 			}
 		}
 	}
