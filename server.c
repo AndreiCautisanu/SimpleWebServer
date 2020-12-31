@@ -11,11 +11,54 @@
 #include <errno.h>
 #include <string.h>
 
-int PORT = 10009;
+int PORT = 10012;
 char *PATH;
 extern int errno;
 
 int listenerfd, clients[1000];
+
+
+
+
+char *readFile(char *filename) {
+	char *buffer = NULL;
+	
+	int fileSize, readSize;
+	FILE *file = fopen(filename, "r");
+	
+	if (file) {
+		
+		//seek pana la ultimul caracter din fisier
+		fseek(file, 0, SEEK_END);
+		
+		//marimea este pozitia curenta
+		fileSize = ftell(file);
+		
+		//inapoi la inceputul fisierului
+		rewind(file);
+		
+		
+		//buffer care sa aiba loc pentru dimensiunea fisierului
+		buffer = (char*)malloc(sizeof(char) * (fileSize + 1));
+		
+		//citim tot fisierul
+		readSize = fread(buffer, sizeof(char), fileSize, file);
+		
+		buffer[fileSize] = '\0';
+		
+		
+		//eroare
+		if (fileSize != readSize) {
+			free(buffer);
+			buffer = NULL;
+		}
+		
+		fclose(file);
+	}
+	
+	return buffer;
+}
+
 
 
 
@@ -25,7 +68,7 @@ int handleRequest(int n) {
 	int file;
 	
 	
-	char path[1000], data[10000];
+	char path[1000], *data, buffer[128];
 	int dataLength; 
 	
 	
@@ -91,13 +134,45 @@ int handleRequest(int n) {
 			
 			if (strncmp(extension, "html\0", 5) == 0 || strncmp(extension, "txt\0", 4) == 0) {
 				
-				printf("%s\n", path);
-				file = open(path, O_RDONLY);
-				printf("%d\n", file);
+				//printf("%s\n", path);
+				//file = open(path, O_RDONLY);
+				//printf("%d\n", file);
 				
-				if (file == -1) {
+				if (access(path, F_OK) != 0) {
 					char *response = "HTTP/1.1 404 Not Found\nContent-Type: text/plain\nContent-Length: 13\n\n404 Not Found";
 					write(clients[n], response, strlen(response));
+				}
+				
+				else {
+					
+					//construim header-ul response-ului
+					char response[100];
+					strcpy(response, "HTTP1.1 200 OK\nContent-Type: text/");
+					
+					//content-type este text/plain pentru .txt si text/html pentru .html
+					if (strncmp(extension, "html\0", 5) == 0) 
+						strcat(response, "html\n");
+					else 
+						strcat(response, "plain\n");
+					
+					strcat(response, "Content-Length: ");
+					
+					
+					//citim fisierul
+					data = readFile(path);
+					
+					//completam header-ul cu lungimea data-ului pe care il trimitem
+					char contentLength[25];
+					sprintf(contentLength, "%lu\n\n", strlen(data));
+					strcat(response, contentLength);
+					
+					
+					//trimitem header-ul si continutul fisierului
+					write(clients[n], response, strlen(response));
+					write(clients[n], data, strlen(data));
+					
+					printf("%s\n", response);
+					
 				}
 			
 			}
