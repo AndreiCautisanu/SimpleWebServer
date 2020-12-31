@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <string.h>
 
-int PORT = 10000;
+int PORT = 10009;
 char *PATH;
 extern int errno;
 
@@ -20,11 +20,13 @@ int listenerfd, clients[1000];
 
 
 int handleRequest(int n) {
-	char request[10000], *requestHeader[10];
-	int requestLength, fd;
+	char request[10000], *requestHeader[5], *extension;
+	int requestLength; /* lungimea request-ului in bytes pentru folosirea functiei recv() */
+	int file;
 	
-	char path[1000], data[1000];
-	int dataLength; // lungimea request-ului in bytes pentru folosirea functiei recv()
+	
+	char path[1000], data[10000];
+	int dataLength; 
 	
 	
 	memset((void*)request, (int)'\0', 10000);
@@ -40,8 +42,8 @@ int handleRequest(int n) {
 		//fwrite(request, 1, sizeof(request), stdout);
 		
 		//dummy response pentru testare
-		//char *response = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
-		//write(clients[n], response, strlen(response));
+		char *response1 = "HTTP/1.0 404 Not Found";
+		write(clients[n], response1, strlen(response1));
 		
 		
 		//ne intereseaza ce fisier cere clientul in header-ul requestului, il trunchiem
@@ -65,6 +67,50 @@ int handleRequest(int n) {
 			//versiunea HTTP
 			requestHeader[3] = strtok(NULL, " \t\n");
 			printf("requestHeader[3] = %s\n\n", requestHeader[3]);
+			
+			
+			//formam path-ul catre fisierul cerut, folosindu-ne de root PATH-ul pe care l-am initializat cu current working directory
+			strcpy(path, PATH);
+			//printf("%s\n", path);
+			strcat(path, requestHeader[2]);
+			printf("%s\n", path);
+			
+			
+			//daca nu este mentionat un fisier in request, ii dam index.html
+			if (strncmp(requestHeader[2], "/\0", 2) == 0) {
+				strcat(path, "index.html");
+				printf("%s\n", path);
+			}
+			
+			//trimitem doar html si txt, extragem extensia fisierului
+			char pathCopy[1000];
+			strcpy(pathCopy, path);
+			extension = strtok(pathCopy, ".");
+			extension = strtok(NULL, "\0");
+			printf("%s\n", extension);
+			
+			if (strncmp(extension, "html\0", 5) == 0 || strncmp(extension, "txt\0", 4) == 0) {
+				
+				printf("%s\n", path);
+				file = open(path, O_RDONLY);
+				printf("%d\n", file);
+				
+				if (file == -1) {
+					char *response = "HTTP/1.1 404 Not Found\nContent-Type: text/plain\nContent-Length: 13\n\n404 Not Found";
+					write(clients[n], response, strlen(response));
+				}
+			
+			}
+			
+			else {
+				char *response = "HTTP/1.1 404 Not Found\nContent-Type: text/plain\nContent-Length: 13\n\n404 Not Found";
+				write(clients[n], response, strlen(response));
+			}
+		}
+		
+		else {
+			char *response = "HTTP/1.1 400 Bad Request\nContent-Type: text/plain\nContent-Length: 11\n\nBad Request";
+			write(clients[n], response, strlen(response));
 		}
 		
 		return 0;
@@ -135,7 +181,6 @@ int main(int argc, char **argv) {
 				
 				int good = handleRequest(clientNo);
 				clientNo++;
-					
 					
 				exit(0);
 			}
