@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <string.h>
 
-int PORT = 10012;
+int PORT = 10016;
 char *PATH;
 extern int errno;
 
@@ -86,7 +86,7 @@ int handleRequest(int n) {
 		
 		//dummy response pentru testare
 		char *response1 = "HTTP/1.0 404 Not Found";
-		write(clients[n], response1, strlen(response1));
+		//write(clients[n], response1, strlen(response1));
 		
 		
 		//ne intereseaza ce fisier cere clientul in header-ul requestului, il trunchiem
@@ -147,7 +147,7 @@ int handleRequest(int n) {
 					
 					//construim header-ul response-ului
 					char response[100];
-					strcpy(response, "HTTP1.1 200 OK\nContent-Type: text/");
+					strcpy(response, "HTTP/1.1 200 OK\nContent-Type: text/");
 					
 					//content-type este text/plain pentru .txt si text/html pentru .html
 					if (strncmp(extension, "html\0", 5) == 0) 
@@ -253,13 +253,24 @@ int main(int argc, char **argv) {
 				
 				close(listenerfd);
 				
-				
 				int good = handleRequest(clientNo);
-				clientNo++;
+				
+				shutdown(clients[clientNo], SHUT_RDWR);
+				close(clients[clientNo]);
+				clients[clientNo] = -1;
+				
 					
 				exit(0);
 			}
+			
+			else {
+				close(clients[clientNo]);
+				clientNo = (clientNo + 1) % 1000;
+				continue;
+			}
 		}
+		
+		
 	}
 	
 	return 0;
