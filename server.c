@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <string.h>
 
-int PORT = 10016;
+int PORT = 10015;
 char *PATH;
 extern int errno;
 
@@ -81,7 +81,7 @@ int handleRequest(int n) {
 		return errno;
 	}
 	else {
-		//printf("%s", request);
+		printf("%s\n\n\n", request);
 		//fwrite(request, 1, sizeof(request), stdout);
 		
 		//dummy response pentru testare
@@ -263,10 +263,15 @@ int main(int argc, char **argv) {
 				exit(0);
 			}
 			
-			else {
+			else if (pid != -1) {
 				close(clients[clientNo]);
 				clientNo = (clientNo + 1) % 1000;
 				continue;
+			}
+			
+			else {
+				perror("[SERVER] fork() error");
+				return errno;
 			}
 		}
 		
